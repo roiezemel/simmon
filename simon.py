@@ -6,8 +6,7 @@ import time
 import matplotlib
 import matplotlib.pyplot as plt
 from multiprocessing import Process, Queue, Manager
-from tkinter import Tk, Label
-from tkinter import ttk
+from tkinter import Tk, Label, ttk
 
 
 class Monitor:
@@ -18,17 +17,13 @@ class Monitor:
     and network configurations. It also provides a live view to track the simulation.
     """
 
-    def __init__(self, dir_name=None, super_directory=None, no_files=False, no_toggles=False):
+    def __init__(self, name=None, super_directory=None, open_dir=True, toggles=True):
 
         # create output directories
-        if not no_files:
-            self.dir_path = _generate_directory(dir_name, super_directory)
+        if open_dir:
+            self.dir_path = _generate_directory(name, super_directory)
             self.data_path = f'{self.dir_path}/data'
-            self.graphs_path = f'{self.dir_path}/graphs'
-            self.networks_path = f'{self.dir_path}/networks'
-
-            for d_path in (self.data_path, self.graphs_path, self.networks_path):
-                _create_dir_path(d_path)
+            _create_dir_path(self.data_path)
 
         self.grouped_trackers = {}
         self.ids = 0  # used to identify trackers
@@ -37,11 +32,11 @@ class Monitor:
 
         self.toggles = []
 
-        if not no_toggles:
-            toggles_window_title = dir_name if dir_name else 'Monitor toggles'
+        if toggles:
+            toggles_window_title = name if name else 'Monitor toggles'
             self.live_view_toggle = Toggle(None, desc='Toggle live view', window_title=toggles_window_title)
             self.toggles.append(self.live_view_toggle)
-            self.plot_toggle = self.add_toggle(name='Plot', desc='Plot trackers')
+            self.plot_toggle = self.add_toggle(name='Plot', desc='Plot data')
 
         self.monitor_vars = set()
         self.monitor_vars.update(set(vars(self).keys()))
@@ -160,7 +155,7 @@ class Monitor:
         This includes:
         - Config data file
         - Tracker .csv files
-        - Network .pickle files
+        - .pickle files
         - Graphs
         Also closes the live view if it remained open.
         """
@@ -176,17 +171,19 @@ class Monitor:
                     tracker.save()
 
         # save group graphs
+        plots_path = f'{self.dir_path}/plots'
+        _create_dir_path(plots_path)
         for group_name in self.grouped_trackers:
             if group_name != "no_group":
                 figure, _ = _monitor_plot(self, group_name, return_figure_and_axs=True)
-                figure.savefig(f'{self.graphs_path}/{group_name}.png', bbox_inches='tight')
+                figure.savefig(f'{plots_path}/{group_name}.png', bbox_inches='tight')
 
         # save no-group graphs
         if "no_group" in self.grouped_trackers:
             for tracker in self.grouped_trackers["no_group"]:
                 figure, _ = _monitor_plot(self, tracker, return_figure_and_axs=True)
-                figure.savefig(f'{self.graphs_path}/'
-                               f'{_determine_tracker_filename(tracker, self.graphs_path, ".png")}', bbox_inches='tight')
+                figure.savefig(f'{plots_path}/'
+                               f'{_determine_tracker_filename(tracker, plots_path, ".png")}', bbox_inches='tight')
 
         # save config file
         self._save_config_file()
@@ -646,6 +643,8 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
     :param window_title: a window title.
     """
     window = Tk()
+    window.iconbitmap(default=f'{__file__}/../assets/simon_logo.ico')
+    window.configure(bg='white')
     window.title(window_title)
 
     window.rowconfigure(0, weight=1)
@@ -666,7 +665,7 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
 
         window.columnconfigure(columns, weight=1)
 
-        label = Label(window, text=_desc, font=('Ariel', 20, 'bold'))
+        label = Label(window, text=_desc, bg='white', font=('Ariel', 20, 'bold'))
 
         s = ttk.Style()
         s.configure('my.TButton', font=('Ariel', 20, 'bold'))
@@ -735,7 +734,7 @@ def _load_to_tracker(tracker, path):
 
 def _generate_directory(dir_name, super_directory):
     if not super_directory:
-        super_directory = f'../data/{str(date.today())}'
+        super_directory = f'sim_records/{str(date.today())}'
 
     _create_dir_path(super_directory)
 
