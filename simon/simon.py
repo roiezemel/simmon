@@ -103,11 +103,15 @@ class Monitor:
         :param args: either titles, Tracker objects, or iterables of Tracker objects.
         :return: a matplotlib figure, only if return_figure is True.
         """
+        # save current backend
+        backend = matplotlib.get_backend()
+        matplotlib.use('TkAgg')
         if len(args) > 9:  # if more than 9 plots, divide into multiple figures
             _monitor_plot(self, *args[:9])
             self.plot(*args[9:])
         else:
             _monitor_plot(self, *args)
+        matplotlib.use(backend)
 
     def open_live_view(self, update_rate=2):
         """
@@ -447,6 +451,8 @@ def _live_view_process(monitor: Monitor, data_q: Queue, update_rate):
     :param update_rate: how many updates per second.
     """
     plt.ion()
+    backend = matplotlib.get_backend()
+    matplotlib.use('TkAgg')
 
     figure = None
     active = True
@@ -500,6 +506,7 @@ def _live_view_process(monitor: Monitor, data_q: Queue, update_rate):
         # wait for next update
         time.sleep(1 / update_rate)
 
+    matplotlib.use(backend)
     plt.ioff()
 
 
