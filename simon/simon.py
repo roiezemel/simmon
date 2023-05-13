@@ -713,7 +713,6 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
     :param window_title: a window title.
     """
     window = Tk()
-    window.iconbitmap(default=f'{__file__}/../assets/simon_logo.ico')
     window.configure(bg='white')
     window.title(window_title)
 

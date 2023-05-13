@@ -1,4 +1,4 @@
-![Logo](/assets/simon_expanded_logo.png)
+![Logo](https://github.com/roiezemel/simon/blob/main/assets/simon_expanded_logo.png?raw=true)
 
 # A simple monitor for simulations and other processes
 
@@ -18,12 +18,17 @@ of a long-running simulation.
   - A summary text file
 - Loading an output directory to continue working with a simulation that's been terminated.
 
+## Installation
+Install with `pip`:
+```commandline
+pip install simple-simon
+```
 
 ## Usage
 Here's a quick example of the `Monitor` class used to track a moving object simulation:
 
 ```python
-from simon import Monitor
+from simon.simon import Monitor
 
 # create Monitor - this already opens an output directory and a toggle-buttons control window
 mon = Monitor('Example Monitor')
@@ -33,7 +38,7 @@ tr = mon.tracker('time', 'velocity')
 
 # set simulation configuration constants
 mon.its = 10000  # if declared as mon's attribute, the value will be 
-mon.dt = 0.1     # added to the config.txt file
+mon.dt = 0.1  # added to the config.txt file
 mon.a = 1
 
 # helper variables
@@ -41,13 +46,13 @@ time = 0
 v = 0
 
 # simulate
-for i in range(mon.its):    
-    # update tracker: provide time and velocity
-    tr.update(time, v)
-    
-    # calculate next time step
-    time += mon.dt
-    v += mon.a * mon.dt
+for i in range(mon.its):
+  # update tracker: provide time and velocity
+  tr.update(time, v)
+
+  # calculate next time step
+  time += mon.dt
+  v += mon.a * mon.dt
 
 # finalize - saves all data and closes necessary processes and windows
 mon.finalize()
@@ -98,8 +103,9 @@ mon.plot('Things against x', tr3, [tr1, tr2, tr3])
 ### About toggles
 The 'Toggles' window is opened from the moment a Monitor is created and until `finalize()` is called.
 Some toggles are added by default. Custom toggles can be added in a very simple way:
+
 ```python
-from simon import Monitor
+from simon.simon import Monitor
 
 # after this, the toggles window is opened
 mon = Monitor('Custom Toggles Example')
@@ -110,7 +116,7 @@ quit_toggle = mon.add_toggle(desc='Quit simulation')
 ...
 
 while not quit_toggle.toggled():
-    # simulate stuff
+# simulate stuff
 
 ...
 ```
@@ -124,8 +130,9 @@ by the user.
 Finally, another cool feature of the Monitor class, is that all the data stored in 
 an output directory, can later be loaded into a Monitor object. This way, a simulation 
 that's been terminated can be resumed, and the data will keep streaming to the same place:
+
 ```python
-from simon import Monitor
+from simon.simon import Monitor
 
 mon = Monitor('Example Monitor')
 mon.load_from_dir()  # this loads all the data from the 'Example Monitor' output directory
