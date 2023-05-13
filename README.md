@@ -1,8 +1,8 @@
 ![Logo](/assets/simon_expanded_logo.png)
 
-## A simple monitor for simulations and other processes
+# A simple monitor for simulations and other processes
 
-### Overview
+## Overview
 This project provides a simple tool for tracking simulations and 
 other numeric processes. It provides a Monitor class that has 
 all the following functionality:
@@ -19,7 +19,7 @@ of a long-running simulation.
 - Loading an output directory to continue working with a simulation that's been terminated.
 
 
-### Usage
+## Usage
 Here's a quick example of the `Monitor` class used to track a moving object simulation:
 
 ```python
@@ -65,7 +65,7 @@ added to the config.txt file at the end.
 Tip: For a traceless Monitor with no output directory, use the 
 QuietMonitor class instead.
 
-#### About trackers
+### About trackers
 Each 'tracker' added to the `Monitor` is provided with a sequence of data labels.
 As mentioned, a 'tracker' is associated with one independent variable and multiple dependent variables:
 ```python
@@ -95,7 +95,7 @@ tr3 = mon.tracker('time', 'force')
 mon.plot('Things against x', tr3, [tr1, tr2, tr3])
 ```
 
-#### About toggles
+### About toggles
 The 'Toggles' window is opened from the moment a Monitor is created and until `finalize()` is called.
 Some toggles are added by default. But custom toggles can be added by the user in a very simple way:
 ```python
@@ -120,7 +120,7 @@ returns a Toggle object, whose `toggled()` method returns True for every toggle 
 by the user.
 
 
-#### Load Monitor data
+### Loading Monitor data
 Finally, another cool feature of the Monitor class, is that all the data stored in 
 an output directory, can later be loaded into a Monitor object. This way, a simulation 
 that's been terminated can be resumed, and the data will keep streaming to the same place:
@@ -137,5 +137,5 @@ mon.plot('Things against x')  # even the same titles
 print(mon.dt, mon.its)  # config variables are still there
 ```
 
-### Contributing
+## Contributing
 Please report any bug you might come across. Contributions and enhancements are very welcome!
