@@ -25,7 +25,7 @@ class Monitor:
             self.data_path = f'{self.dir_path}/data'
             _create_dir_path(self.data_path)
 
-        self.grouped_trackers = {}
+        self.titled_trackers = {}
         self.ids = 0  # used to identify trackers
         self.live_view_process = None
         self.live_view_queue = None
@@ -41,25 +41,25 @@ class Monitor:
         self.monitor_vars = set()
         self.monitor_vars.update(set(vars(self).keys()))
 
-    def tracker(self, ind_var_name, *dep_var_names, group_name='no_group', autosave=False):
+    def tracker(self, ind_var_name, *dep_var_names, title='no_title', autosave=False):
         """
         Create a tracker object to track variables.
         A tracker is associated with one independent variable, and multiple dependent
         variables.
         :param ind_var_name: The independent variable name.
         :param dep_var_names: The dependent variable names.
-        :param group_name: An optional group name. Multiple trackers
-                                that belong to the same group will be plotted together.
+        :param title: An optional title. Multiple trackers with the same
+                      title will be plotted together.
         :param autosave: Enables autosave for the tracker.
         :return: A tracker object that has an update() method.
         """
         if not getattr(self, 'data_path', False):  # if no files
             dir_path = ''
             autosave = False
-        elif group_name == 'no_group':
+        elif title == 'no_title':
             dir_path = self.data_path
         else:
-            dir_path = self.data_path + "/" + group_name
+            dir_path = self.data_path + "/" + title
             _create_dir_path(dir_path)
 
         tracker = Tracker(self, self.ids, dir_path, ind_var_name, *dep_var_names, autosave=autosave)
@@ -67,10 +67,10 @@ class Monitor:
         # increase self.ids
         self.ids += 1
 
-        if group_name in self.grouped_trackers:
-            self.grouped_trackers[group_name].append(tracker)
+        if title in self.titled_trackers:
+            self.titled_trackers[title].append(tracker)
         else:
-            self.grouped_trackers[group_name] = [tracker]
+            self.titled_trackers[title] = [tracker]
 
         return tracker
 
@@ -94,8 +94,8 @@ class Monitor:
 
     def plot(self, *args):
         """
-        Plot all groups or trackers in a single figure.
-        :param args: either group names, or Tracker objects.
+        Plot all trackers or groups of trackers in a single figure.
+        :param args: either titles, or Tracker objects.
         :return: a matplotlib figure, only if return_figure is True.
         """
         _monitor_plot(self, *args)
@@ -107,7 +107,7 @@ class Monitor:
         """
         # make self less recursive by removing monitor
         # reference from trackers
-        for trackers in self.grouped_trackers.values():
+        for trackers in self.titled_trackers.values():
             for tracker in trackers:
                 tracker.monitor = None
 
@@ -128,7 +128,7 @@ class Monitor:
         self.live_view_process.start()
 
         # restore monitor reference to trackers
-        for trackers in self.grouped_trackers.values():
+        for trackers in self.titled_trackers.values():
             for tracker in trackers:
                 tracker.monitor = self
 
@@ -165,7 +165,7 @@ class Monitor:
             return
 
         # save tracked data
-        for trackers in self.grouped_trackers.values():
+        for trackers in self.titled_trackers.values():
             for tracker in trackers:
                 if not tracker.autosave:
                     tracker.save()
@@ -173,14 +173,14 @@ class Monitor:
         # save group graphs
         plots_path = f'{self.dir_path}/plots'
         _create_dir_path(plots_path)
-        for group_name in self.grouped_trackers:
-            if group_name != "no_group":
-                figure, _ = _monitor_plot(self, group_name, return_figure_and_axs=True)
-                figure.savefig(f'{plots_path}/{group_name}.png', bbox_inches='tight')
+        for title in self.titled_trackers:
+            if title != "no_title":
+                figure, _ = _monitor_plot(self, title, return_figure_and_axs=True)
+                figure.savefig(f'{plots_path}/{title}.png', bbox_inches='tight')
 
-        # save no-group graphs
-        if "no_group" in self.grouped_trackers:
-            for tracker in self.grouped_trackers["no_group"]:
+        # save no-title graphs
+        if "no_title" in self.titled_trackers:
+            for tracker in self.titled_trackers["no_title"]:
                 figure, _ = _monitor_plot(self, tracker, return_figure_and_axs=True)
                 figure.savefig(f'{plots_path}/'
                                f'{_determine_tracker_filename(tracker, plots_path, ".png")}', bbox_inches='tight')
@@ -210,17 +210,17 @@ class Monitor:
         # load data
         if path.exists(data_path):
             data_content = next(walk(data_path), [()] * 3)
-            for group in data_content[1]:  # dir names
-                group_path = f'{data_path}/{group}'
+            for title in data_content[1]:  # dir names
+                group_path = f'{data_path}/{title}'
                 for tracker_filename in next(walk(group_path), [()] * 3)[2]:
                     labels = tracker_filename.replace('+', '').split('-')
-                    tracker = self.tracker(labels[0], *labels[1:], group_name=group)
+                    tracker = self.tracker(labels[0], *labels[1:], title=title)
                     _load_to_tracker(tracker, f'{group_path}/{tracker_filename}')
 
-            for no_group_filename in data_content[2]:  # file names
-                labels = no_group_filename.replace('+', '').split('-')
+            for no_title_filename in data_content[2]:  # file names
+                labels = no_title_filename.replace('+', '').split('-')
                 tracker = self.tracker(labels[0], *labels[1:])
-                _load_to_tracker(tracker, f'{data_path}/{no_group_filename}')
+                _load_to_tracker(tracker, f'{data_path}/{no_title_filename}')
 
         # load config
         if path.exists(config_path):
@@ -405,7 +405,7 @@ def _live_view_process(monitor: Monitor, data_q: Queue, update_rate):
 
     # create an id_to_tracker dictionary
     id_to_tracker = dict()
-    for trackers in monitor.grouped_trackers.values():
+    for trackers in monitor.titled_trackers.values():
         for tracker in trackers:
             id_to_tracker[tracker._id] = tracker
 
@@ -537,14 +537,14 @@ def _refresh_monitor_toggles(monitor):
 
     # if plot toggle toggled
     if getattr(monitor, 'plot_toggle', False) and monitor.plot_toggle.toggled():
-        group_names = [group_name for group_name in monitor.grouped_trackers if group_name != "no_group"]
-        monitor.plot(*group_names)
+        titles = [title for title in monitor.titled_trackers if title != "no_title"]
+        monitor.plot(*titles)
 
 
 def _monitor_plot(monitor, *args, return_figure_and_axs=False):
     """
-    Plot all groups or trackers in a single figure.
-    :param args: either group names, or Tracker objects.
+    Plot all trackers or groups of trackers in a single figure.
+    :param args: either titles, or Tracker objects.
     :param return_figure_and_axs: if True, a matplotlib figure is returned
                                   instead of being displayed, along with an array of axes objects.
     :return: (optionally) a matplotlib figure, and an array of axs.
@@ -568,15 +568,15 @@ def _monitor_plot(monitor, *args, return_figure_and_axs=False):
         arg = args[i]
         ax = axs[i]
 
-        # if arg is a string, consider it a group name
+        # if arg is a string, consider it a title
         if type(arg) == str:
-            if arg not in monitor.grouped_trackers:
-                raise ValueError(f"Invalid group name passed to plot()!"
-                                 f"\n'{arg}' is not a group name provided to the "
+            if arg not in monitor.titled_trackers:
+                raise ValueError(f"Invalid title passed to plot()!"
+                                 f"\n'{arg}' is not a title provided to the "
                                  f"monitor.")
 
             title = arg
-            trackers = monitor.grouped_trackers[arg]
+            trackers = monitor.titled_trackers[arg]
 
         # else if arg is a tracker, it should have its own axes
         elif type(arg) == Tracker:
@@ -587,7 +587,7 @@ def _monitor_plot(monitor, *args, return_figure_and_axs=False):
         else:
             raise ValueError(f"Invalid argument passed to plot()!"
                              f"\nA {type(arg)} object cannot be plotted."
-                             f"\nplot() accepts either a group name (str)"
+                             f"\nplot() accepts either a title (str)"
                              f" or a Tracker object.")
 
         # plot trackers
