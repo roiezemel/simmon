@@ -28,7 +28,7 @@ pip install simple-simon
 Here's a quick example of the `Monitor` class used to track a moving object simulation:
 
 ```python
-from simon.simon import Monitor
+from simon import Monitor
 
 # create Monitor - this already opens an output directory and a toggle-buttons control window
 mon = Monitor('Example Monitor')
@@ -105,7 +105,7 @@ The 'Toggles' window is opened from the moment a Monitor is created and until `f
 Some toggles are added by default. Custom toggles can be added in a very simple way:
 
 ```python
-from simon.simon import Monitor
+from simon import Monitor
 
 # after this, the toggles window is opened
 mon = Monitor('Custom Toggles Example')
@@ -132,7 +132,7 @@ an output directory, can later be loaded into a Monitor object. This way, a simu
 that's been terminated can be resumed, and the data will keep streaming to the same place:
 
 ```python
-from simon.simon import Monitor
+from simon import Monitor
 
 mon = Monitor('Example Monitor')
 mon.load_from_dir()  # this loads all the data from the 'Example Monitor' output directory
