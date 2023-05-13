@@ -1,6 +1,9 @@
-![Logo](https://github.com/roiezemel/simon/raw/main/assets/simon_expanded_logo.png)
+![Logo](https://github.com/roiezemel/simmon/raw/main/assets/simmon_expanded_logo.png)
 
-# A simple monitor for simulations and other processes
+[![PyPI version](https://badge.fury.io/py/simmon.svg)](https://badge.fury.io/py/simmon)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](http://choosealicense.com/licenses/mit/)
+
+# A simple monitor for simulations and other numeric processes
 
 ## Overview
 This project provides a simple tool for tracking simulations and 
@@ -21,14 +24,14 @@ of a long-running simulation.
 ## Installation
 Install with `pip`:
 ```commandline
-pip install simple-simon
+pip install simmon
 ```
 
 ## Usage
 Here's a quick example of the `Monitor` class used to track a moving object simulation:
 
 ```python
-from simon import Monitor
+from simmon import Monitor
 
 # create Monitor - this already opens an output directory and a toggle-buttons control window
 mon = Monitor('Example Monitor')
@@ -38,7 +41,7 @@ tr = mon.tracker('time', 'velocity')
 
 # set simulation configuration constants
 mon.its = 10000  # if declared as mon's attribute, the value will be 
-mon.dt = 0.1  # added to the config.txt file
+mon.dt = 0.1     # added to the config.txt file
 mon.a = 1
 
 # helper variables
@@ -105,7 +108,7 @@ The 'Toggles' window is opened from the moment a Monitor is created and until `f
 Some toggles are added by default. Custom toggles can be added in a very simple way:
 
 ```python
-from simon import Monitor
+from simmon import Monitor
 
 # after this, the toggles window is opened
 mon = Monitor('Custom Toggles Example')
@@ -132,7 +135,7 @@ an output directory, can later be loaded into a Monitor object. This way, a simu
 that's been terminated can be resumed, and the data will keep streaming to the same place:
 
 ```python
-from simon import Monitor
+from simmon import Monitor
 
 mon = Monitor('Example Monitor')
 mon.load_from_dir()  # this loads all the data from the 'Example Monitor' output directory

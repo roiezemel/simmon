@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="simple-simon",                           # This is the name of the package
-    version="0.0.5",                               # The initial release version
+    name="simmon",                                 # This is the name of the package
+    version="0.0.1",                               # The initial release version
     author="Roie Zemel",                           # Full name of the author
     description="A simple simulation monitor",
     long_description=long_description,             # Long description read from the the readme file
@@ -16,7 +16,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],                                             # Information to filter the project on PyPi website
     python_requires='>=3.6',                       # Minimum version requirement of the package
-    py_modules=["simon"],                          # Name of the python package
-    package_dir={'':'simon'},                      # Directory of the source code of the package
+    py_modules=["simmon"],                          # Name of the python package
+    package_dir={'':'simmon'},                      # Directory of the source code of the package
     install_requires=['matplotlib']                # Install other dependencies if any
 )
