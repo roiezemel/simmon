@@ -11,28 +11,29 @@ from tkinter import Tk, Label, ttk
 
 class Monitor:
     """
-    Monitor and track a simulation. This class is meant to wrap
-    all the variables of the simulation and store them in a single directory.
-    It tracks networks, variables and constants, and saves graphs, data files,
-    and network configurations. It also provides a live view to track the simulation.
+    Monitor and track a simulation. This class collects
+    data from a simulation and stores it in a single output directory.
+    Provides a live view to track the progress of the simulation and a convenience
+    toggle-buttons window.
     """
 
-    def __init__(self, name=None, super_directory=None, open_dir=True, toggles=True):
+    def __init__(self, name=None, super_directory=None, enable_output_directory=True, enable_toggles=True):
 
         # create output directories
-        if open_dir:
+        if enable_output_directory:
             self.dir_path = _generate_directory(name, super_directory)
             self.data_path = f'{self.dir_path}/data'
             _create_dir_path(self.data_path)
 
         self.titled_trackers = {}
+        self.trackers = []  # a list of trackers for convenience
         self.ids = 0  # used to identify trackers
         self.live_view_process = None
         self.live_view_queue = None
 
         self.toggles = []
 
-        if toggles:
+        if enable_toggles:
             toggles_window_title = name if name else 'Monitor toggles'
             self.live_view_toggle = Toggle(None, desc='Toggle live view', window_title=toggles_window_title)
             self.toggles.append(self.live_view_toggle)
@@ -72,6 +73,7 @@ class Monitor:
         else:
             self.titled_trackers[title] = [tracker]
 
+        self.trackers.append(tracker)  # add tracker to list as well
         return tracker
 
     def add_toggle(self, name='Toggle', desc='Press to toggle'):
@@ -254,6 +256,17 @@ class Monitor:
                 if var_name not in self.monitor_vars:
                     content += f"{var_name}: {str(var)}\n"
             file.write(content[:-1])
+
+
+class QuietMonitor(Monitor):
+    """
+    Represents a Monitor with no output files.
+    It is a traceless Monitor, that can be used
+    in cases where the live-view and toggles
+    are useful but there's no need for an output directory.
+    """
+    def __init__(self, name=None, enable_toggles=True):
+        super().__init__(name=name, enable_output_directory=False, enable_toggles=enable_toggles)
 
 
 class Tracker:
