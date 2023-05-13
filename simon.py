@@ -95,7 +95,7 @@ class Monitor:
     def plot(self, *args):
         """
         Plot all trackers or groups of trackers in a single figure.
-        :param args: either titles, or Tracker objects.
+        :param args: either titles, Tracker objects, or iterables of Tracker objects.
         :return: a matplotlib figure, only if return_figure is True.
         """
         if len(args) > 9:  # if more than 9 plots, divide into multiple figures
@@ -542,13 +542,24 @@ def _refresh_monitor_toggles(monitor):
     # if plot toggle toggled
     if getattr(monitor, 'plot_toggle', False) and monitor.plot_toggle.toggled():
         titles = [title for title in monitor.titled_trackers if title != "no_title"]
+
+        # add plots of untitled trackers, grouped by ind_var_name
+        if 'no_title' in monitor.titled_trackers:
+            groups = {}
+            for tr in monitor.titled_trackers['no_title']:
+                if tr.ind_var_name in groups:
+                    groups[tr.ind_var_name].append(tr)
+                else:
+                    groups[tr.ind_var_name] = [tr]
+            titles.extend(groups.values())
+
         monitor.plot(*titles)
 
 
 def _monitor_plot(monitor, *args, return_figure_and_axs=False):
     """
     Plot all trackers or groups of trackers in a single figure.
-    :param args: either titles, or Tracker objects.
+    :param args: either titles, Tracker objects, or iterables of Tracker objects.
     :param return_figure_and_axs: if True, a matplotlib figure is returned
                                   instead of being displayed, along with an array of axes objects.
     :return: (optionally) a matplotlib figure, and an array of axs.
@@ -587,12 +598,17 @@ def _monitor_plot(monitor, *args, return_figure_and_axs=False):
             title = f'{", ".join(arg.dep_var_names)} against {arg.ind_var_name}'
             trackers = [arg]
 
-        # else, this is an invalid argument, raise an exception
+        # else, try iterating over the argument to see if it's an iterable
         else:
-            raise ValueError(f"Invalid argument passed to plot()!"
-                             f"\nA {type(arg)} object cannot be plotted."
-                             f"\nplot() accepts either a title (str)"
-                             f" or a Tracker object.")
+            try:
+                iter(arg)  # raises exception if not an iterable
+                trackers = arg
+                title = ''
+            except TypeError:  # then it's not an iterable
+                raise ValueError(f"Invalid argument passed to plot()!"
+                                 f"\nA {type(arg)} object cannot be plotted."
+                                 f"\nplot() accepts either a title (str),"
+                                 f" a Tracker object, or an iterable of Tracker objects.")
 
         # plot trackers
         _plot_trackers(ax, trackers)
@@ -619,6 +635,12 @@ def _plot_trackers(axes, trackers):
     """
     # plot all graphs
     for tracker in trackers:
+        # raise exception if object is not a Tracker object
+        if type(tracker) != Tracker:
+            raise ValueError(f"Cannot plot an object of type {type(tracker)}."
+                             f" The iterable passed to _plot_trackers() must only contain"
+                             f" Tracker objects.")
+
         xs = [line[0] for line in tracker.data]
         for i in range(len(tracker.dep_var_names)):
             ys = [line[i + 1] for line in tracker.data]
