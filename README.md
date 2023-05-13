@@ -58,7 +58,7 @@ A few notes:
 opens the live view of the data.
 - Later, a 'tracker' is added to the Monitor to track velocity against time. Each tracker is associated with **one** independent variable, 
 and multiple dependent variables. When calling `update()` the number of values provided should be equal to the number of variable labels.
-- Variables declared as attributes of the Monitor objects (like `its` and `dt`) are considered configuration constants. These values will be
+- Variables declared as attributes of the Monitor object (like `its` and `dt`) are considered configuration constants. These values will be
 added to the config.txt file at the end.
 - `finalize()` is an important method that closes all subprocesses that haven't been closed and saves all the data that hasn't been saved.
 
@@ -97,7 +97,7 @@ mon.plot('Things against x', tr3, [tr1, tr2, tr3])
 
 ### About toggles
 The 'Toggles' window is opened from the moment a Monitor is created and until `finalize()` is called.
-Some toggles are added by default. But custom toggles can be added by the user in a very simple way:
+Some toggles are added by default. Custom toggles can be added in a very simple way:
 ```python
 from simon import Monitor
 
