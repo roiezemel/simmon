@@ -98,7 +98,11 @@ class Monitor:
         :param args: either titles, or Tracker objects.
         :return: a matplotlib figure, only if return_figure is True.
         """
-        _monitor_plot(self, *args)
+        if len(args) > 9:  # if more than 9 plots, divide into multiple figures
+            _monitor_plot(self, *args[:9])
+            self.plot(*args[9:])
+        else:
+            _monitor_plot(self, *args)
 
     def open_live_view(self, update_rate=2):
         """
