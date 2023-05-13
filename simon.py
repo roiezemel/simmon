@@ -1,5 +1,5 @@
 import warnings
-from datetime import date
+from datetime import date, datetime
 from os import walk, remove, path
 from pathlib import Path
 import time
@@ -38,6 +38,9 @@ class Monitor:
             self.live_view_toggle = Toggle(None, desc='Toggle live view', window_title=toggles_window_title)
             self.toggles.append(self.live_view_toggle)
             self.plot_toggle = self.add_toggle(name='Plot', desc='Plot data')
+
+        # save current time for the summary
+        self._t0 = datetime.now()
 
         self.monitor_vars = set()
         self.monitor_vars.update(set(vars(self).keys()))
@@ -165,9 +168,15 @@ class Monitor:
         - Graphs
         Also closes the live view if it remained open.
         """
+
+        # close live view
+        self.close_live_view()
+
+        # close toggles
+        self.close_toggles()
+
+        # if output disabled, return
         if not getattr(self, 'dir_path', False):  # if no files
-            self.close_live_view()
-            self.close_toggles()
             return
 
         # save tracked data
@@ -194,11 +203,8 @@ class Monitor:
         # save config file
         self._save_config_file()
 
-        # close live view
-        self.close_live_view()
-
-        # close toggles
-        self.close_toggles()
+        # save summary file
+        self._save_summary_file()
 
     def load_from_dir(self, dir_path=None):
         """
@@ -248,14 +254,39 @@ class Monitor:
         These attributes are considered "configurations" and
         are written to a "config.txt" file.
         """
-        with open(self.dir_path + "/" + "config.txt", 'w') as file:
-            content = "-----------------\n" \
-                      "   Config Data   \n" \
-                      "-----------------\n"
-            for var_name, var in vars(self).items():
-                if var_name not in self.monitor_vars:
-                    content += f"{var_name}: {str(var)}\n"
+        content = "-----------------\n" \
+                  "   Config Data   \n" \
+                  "-----------------\n"
+        for var_name, var in vars(self).items():
+            if var_name not in self.monitor_vars:
+                content += f"{var_name}: {str(var)}\n"
+
+        with open(self.dir_path + "/config.txt", 'w') as file:
             file.write(content[:-1])
+
+    def _save_summary_file(self):
+        """
+        Save a summary of the Monitor.
+        """
+        delta = datetime.now() - self._t0
+        hours, remainder = divmod(delta.total_seconds(), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        duration = '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
+
+        content = f"-------------\n" \
+                  f"   Summary   \n" \
+                  f"-------------\n" \
+                  f"Monitor was up for {duration}.\n\n" \
+                  f"Tracked data:\n"
+        for title, trackers in self.titled_trackers.items():
+            if title != 'no_title':
+                content += f" - {len(trackers)} output file{'s' if len(trackers) - 1 else ''} under '{title}'.\n"
+        if 'no_title' in self.titled_trackers:
+            n_untitled = len(self.titled_trackers['no_title'])
+            content += f" - {n_untitled} output file{'s' if n_untitled - 1 else ''} of untitled trackers."
+
+        with open(self.dir_path + "/summary.txt", 'w') as file:
+            file.write(content)
 
 
 class QuietMonitor(Monitor):
