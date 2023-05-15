@@ -6,23 +6,11 @@ Welcome to Simmon's documentation
    :maxdepth: 2
    :hidden:
 
-    README <README.rst>
+    Welcome to Simmon <README.rst>
     Documentation <simmon_doc>
 
-README file:
-------------
-
+Navigate:
+----------
 * :doc:`README`
-
-Full documentation for this project:
-------------------------------------
-
 * :doc:`simmon_doc`
-
-
-Indices and tables
-------------------
-
 * :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

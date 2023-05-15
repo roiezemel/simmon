@@ -11,17 +11,18 @@
 This project provides a simple tool for tracking simulations and 
 other numeric processes. It provides a Monitor class that has 
 all the following functionality:
-- Tracking numeric variables.
-- Plotting the data.
-- An updating live view of the tracked variables.
-- A window of convenience toggles to control the progress
+
+* Tracking numeric variables.
+* Plotting the data.
+* An updating live view of the tracked variables.
+* A window of convenience toggles to control the progress
 of a long-running simulation.
-- Automatically saving all the collected data in a single output directory, including:
-  - .csv files
-  - Plots
-  - A config file with configuration constants
-  - A summary text file
-- Loading an output directory to continue working with a simulation that's been terminated.
+* Automatically saving all the collected data in a single output directory, including:
+  * .csv files
+  * Plots
+  * A config file with configuration constants
+  * A summary text file
+* Loading an output directory to continue working with a simulation that's been terminated.
 
 ## Installation
 Install with `pip`:
