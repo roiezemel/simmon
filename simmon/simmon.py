@@ -10,15 +10,28 @@ from tkinter import Tk, Label, ttk
 
 
 class Monitor:
-    """
-    Monitor and track a simulation. This class collects
+    """Monitor and track a simulation. This class collects
     data from a simulation and stores it in a single output directory.
     Provides a live view to track the progress of the simulation and a convenience
     toggle-buttons window.
+
+    :param name: A name for the Monitor. Also used as the output directory name.
+        By default, the output directory is given a name of the form "S#" where # is
+        the biggest number found in super_directory.
+    :type name: str, optional
+    :param super_directory: A path to a super directory, in which the output directory
+        for the Monitor is created. The super directory is created if it doesn't already exist.
+    :type super_directory: str, optional
+    :param enable_output_directory: Whether to create an output directory for the Monitor.
+        If False, then this class acts like QuietMonitor.
+    :type enable_output_directory: bool, optional
+    :param enable_toggles: Whether to open a toggles window for a convenient user control.
+    :type enable_toggles: bool, optional
     """
 
     def __init__(self, name=None, super_directory=None, enable_output_directory=True, enable_toggles=True):
-
+        """Constructor method
+        """
         # create output directories
         if enable_output_directory:
             self.dir_path = _generate_directory(name, super_directory)
@@ -46,16 +59,24 @@ class Monitor:
         self.monitor_vars.update(set(vars(self).keys()))
 
     def tracker(self, ind_var_name, *dep_var_names, title='no_title', autosave=False):
-        """
-        Create a tracker object to track variables.
+        """Create a tracker object to track variables.
         A tracker is associated with one independent variable, and multiple dependent
         variables.
+
         :param ind_var_name: The independent variable name.
+        :type ind_var_name: str
         :param dep_var_names: The dependent variable names.
-        :param title: An optional title. Multiple trackers with the same
-                      title will be plotted together.
-        :param autosave: Enables autosave for the tracker.
+        :type dep_var_names: str
+        :param title: A title for the trackers. Multiple trackers with the same
+            title will be plotted together.
+        :type title: str, optional
+        :param autosave: Enables autosave for the tracker. If True,
+            each update() call appends the data into the output file.
+            This ensures that the data won't be lost in case of
+            an unexpected termination. Default is False.
+        :type autosave: bool, optional
         :return: A tracker object that has an update() method.
+        :rtype: Tracker
         """
         if not getattr(self, 'data_path', False):  # if no files
             dir_path = ''
@@ -80,28 +101,32 @@ class Monitor:
         return tracker
 
     def add_toggle(self, name='Toggle', desc='Press to toggle'):
-        """
-        Add a Toggle to the toggles window.
+        """Add a Toggle to the toggles window.
+
         :param name: Toggle name.
+        :type name: str, optional
         :param desc: Toggle description.
+        :type desc: str, optional
         :return: A new Toggle object that has the method toggled().
+        :rtype: Toggle
         """
         toggle = Toggle(self.live_view_toggle, name=name, desc=desc)
         self.toggles.append(toggle)
         return toggle
 
     def close_toggles(self):
-        """
-        Close all toggles.
+        """Close all toggles. No need if finalize() is called.
         """
         for toggle in self.toggles:
             toggle.close()
 
     def plot(self, *args):
-        """
-        Plot all trackers or groups of trackers in a single figure.
-        :param args: either titles, Tracker objects, or iterables of Tracker objects.
-        :return: a matplotlib figure, only if return_figure is True.
+        """Plot trackers or groups of trackers in a single figure.
+        This method accepts multiple arguments representing plots, and shows
+        all plots at once.
+
+        :param args: Either titles, Tracker objects, or iterables of Tracker objects.
+        :type args: str, Tracker, iterable
         """
         # save current backend
         backend = matplotlib.get_backend()
@@ -114,9 +139,10 @@ class Monitor:
         matplotlib.use(backend)
 
     def open_live_view(self, update_rate=2):
-        """
-        Open a live view of the monitor in a different process.
-        :param update_rate: how many graph updates to perform in a second.
+        """Open a live view of the Monitor in a different process.
+
+        :param update_rate: How many graph updates to perform in a second.
+        :type update_rate: float, optional
         """
         # make self less recursive by removing monitor
         # reference from trackers
@@ -153,6 +179,7 @@ class Monitor:
     def close_live_view(self):
         """
         Close the live view.
+
         """
         if not self.live_view_queue:  # means that live view is closed
             return
@@ -171,6 +198,7 @@ class Monitor:
         - .pickle files
         - Graphs
         Also closes the live view if it remained open.
+
         """
 
         # close live view
@@ -213,6 +241,7 @@ class Monitor:
     def load_from_dir(self, dir_path=None):
         """
         Load all monitor data already contained in dir_path.
+
         :param dir_path: if provided, this path is used instead of self.dir_path.
         """
         if not dir_path:
@@ -257,6 +286,7 @@ class Monitor:
         Save attributes added to this object.
         These attributes are considered "configurations" and
         are written to a "config.txt" file.
+
         """
         content = "-----------------\n" \
                   "   Config Data   \n" \
@@ -271,6 +301,7 @@ class Monitor:
     def _save_summary_file(self):
         """
         Save a summary of the Monitor.
+
         """
         delta = datetime.now() - self._t0
         hours, remainder = divmod(delta.total_seconds(), 3600)
@@ -299,6 +330,7 @@ class QuietMonitor(Monitor):
     It is a traceless Monitor, that can be used
     in cases where the live-view and toggles
     are useful but there's no need for an output directory.
+
     """
     def __init__(self, name=None, enable_toggles=True):
         super().__init__(name=name, enable_output_directory=False, enable_toggles=enable_toggles)
@@ -308,6 +340,7 @@ class Tracker:
     """
     Track variables and save them to .csv files.
     This class is a helper to the Monitor class.
+
     """
 
     def __init__(self, monitor: Monitor, _id: float, dir_path: str, ind_var_name: str, *dep_var_names, autosave=False):
@@ -335,6 +368,7 @@ class Tracker:
     def update(self, ind_var, *dep_vars):
         """
         Update tracker's data.
+
         :param ind_var: a current value of the independent variable.
         :param dep_vars: current values of all dependent variables.
         """
@@ -361,6 +395,7 @@ class Tracker:
         Save data to an output file.
         If autosave is enabled, then default output file
         is removed.
+
         :param path: path for the output file, otherwise, determined by
                      the data labels.
         """
@@ -397,6 +432,7 @@ class Tracker:
 class Toggle:
     """
     A helper class for Monitor that represents a toggle button.
+
     """
     def __init__(self, main_toggle, name='Toggle', desc="Press to toggle", window_title="Toggle(s)"):
         self.toggle_count = 0
@@ -446,6 +482,7 @@ def _live_view_process(monitor: Monitor, data_q: Queue, update_rate):
     """
     This is the live view process.
     It creates and updates the live view figure.
+
     :param monitor: a monitor clone object (pickled and un-pickled).
     :param data_q: a data queue to send data to the process.
     :param update_rate: how many updates per second.
@@ -526,6 +563,7 @@ def _redraw_live_view(monitor, prev_figure, trackers):
     """
     In case new trackers are added to the live view,
     a new figure is created with this function.
+
     :param monitor: the monitor.
     :param prev_figure: the previous figure.
     :param trackers: the updated list of trackers.
@@ -543,6 +581,7 @@ def _redraw_live_view(monitor, prev_figure, trackers):
 def _update_live_view_axes(new_data, tracker, axes):
     """
     Update a live view axes according to a new data update.
+
     :param new_data: a tuple of new data values.
     :param tracker: a tracker that stores all the data for the axes lines.
     :param axes: the axes of the plot.
@@ -581,6 +620,7 @@ def _update_live_view_axes(new_data, tracker, axes):
 def _refresh_monitor_toggles(monitor):
     """
     Check if monitor's main toggles have been toggled.
+
     :param monitor: a monitor.
     """
     # if live view toggle toggled
@@ -610,6 +650,7 @@ def _refresh_monitor_toggles(monitor):
 def _monitor_plot(monitor, *args, return_figure_and_axs=False):
     """
     Plot all trackers or groups of trackers in a single figure.
+
     :param args: either titles, Tracker objects, or iterables of Tracker objects.
     :param return_figure_and_axs: if True, a matplotlib figure is returned
                                   instead of being displayed, along with an array of axes objects.
@@ -681,6 +722,7 @@ def _monitor_plot(monitor, *args, return_figure_and_axs=False):
 def _plot_trackers(axes, trackers):
     """
     Plot a group of trackers' data.
+
     :param axes: a matplotlib axes.
     :param trackers: a list of trackers.
     """
@@ -713,6 +755,7 @@ def _plot_trackers(axes, trackers):
 def _toggle_window(in_q, _counts, name, desc, window_title):
     """
     This process creates toggle buttons and listens to toggles.
+
     :param in_q: instruction queue.
     :param _counts: counts array-like.
     :param name: (main) toggle name.
@@ -800,6 +843,7 @@ def _determine_tracker_filename(tracker, dir_path, ending):
 def _load_to_tracker(tracker, path):
     """
     Load a tracker object from a path.
+
     :param tracker: a tracker object to load the data into.
     :param path: path to data file.
     """
