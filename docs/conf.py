@@ -8,7 +8,7 @@ import sys
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'simmon'
+project = 'Simmon'
 copyright = '2023, Roie Zemel'
 author = 'Roie Zemel'
 release = '0.0.3'
@@ -23,6 +23,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.coverage',
+    'm2r2',
+    'sphinx.ext.autosectionlabel',
 ]
 
 templates_path = ['_templates']
@@ -31,5 +33,5 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
+html_theme = "sphinx_rtd_theme"
 html_static_path = ['_static']
