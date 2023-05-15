@@ -2,6 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/simmon.svg)](https://badge.fury.io/py/simmon)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](http://choosealicense.com/licenses/mit/)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/roiezemel/simmon)
 
 # A simple monitor for simulations and other numeric processes
 

@@ -4,19 +4,21 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="simmon",                                 # This is the name of the package
-    version="0.0.1",                               # The initial release version
-    author="Roie Zemel",                           # Full name of the author
+    name="simmon",
+    version="0.0.3",
+    author="Roie Zemel",
     description="A simple simulation monitor",
-    long_description=long_description,             # Long description read from the the readme file
+    long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=setuptools.find_packages(),           # List of all python modules to be installed
+    packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
-    ],                                             # Information to filter the project on PyPi website
-    python_requires='>=3.6',                       # Minimum version requirement of the package
-    py_modules=["simmon"],                          # Name of the python package
-    package_dir={'':'simmon'},                      # Directory of the source code of the package
-    install_requires=['matplotlib']                # Install other dependencies if any
+    ],
+    python_requires='>=3.6',
+    py_modules=["simmon"],
+    package_dir={'': 'simmon'},
+    install_requires=['matplotlib'],
+    keywords=["simulation, data tracking"],
+    license_files=('LICENSE',)
 )
