@@ -110,6 +110,9 @@ class Monitor:
         :return: A new Toggle object that has the method toggled().
         :rtype: Toggle
         """
+        if not hasattr(self, 'live_view_toggle'):
+            raise ReferenceError("The toggles for this Monitor have been disabled.")
+
         toggle = Toggle(self.live_view_toggle, name=name, desc=desc)
         self.toggles.append(toggle)
         return toggle
@@ -190,14 +193,13 @@ class Monitor:
         self.live_view_process = None
 
     def finalize(self):
-        """
-        Save all data tracked by this Monitor.
+        """Save all data tracked by this Monitor.
         This includes:
-        - Config data file
+        - Config file
+        - Summary file
         - Tracker .csv files
-        - .pickle files
-        - Graphs
-        Also closes the live view if it remained open.
+        - Plots
+        It also closes the live view and the toggles window.
 
         """
 
@@ -239,10 +241,15 @@ class Monitor:
         self._save_summary_file()
 
     def load_from_dir(self, dir_path=None):
-        """
-        Load all monitor data already contained in dir_path.
+        """Load data stored in a Monitor's output directory.
+        This can be used to resume a terminated monitored process.
+        The data being loaded is:
+        - Config variables.
+        - Tracker objects including titles.
 
-        :param dir_path: if provided, this path is used instead of self.dir_path.
+        :param dir_path: The data is loaded
+            from this directory if provided. Otherwise, data is loaded from self.dir_path.
+        :type dir_path: str, optional
         """
         if not dir_path:
             if not getattr(self, 'dir_path', False):  # if no files
@@ -282,8 +289,7 @@ class Monitor:
                         vars(self)[attr_name] = attr_value
 
     def _save_config_file(self):
-        """
-        Save attributes added to this object.
+        """Save attributes added to this object.
         These attributes are considered "configurations" and
         are written to a "config.txt" file.
 
@@ -299,8 +305,10 @@ class Monitor:
             file.write(content[:-1])
 
     def _save_summary_file(self):
-        """
-        Save a summary of the Monitor.
+        """Save a summary of the Monitor's run.
+        Includes:
+        - The duration in which the Monitor was up.
+        - A summary of the data files in the output directory.
 
         """
         delta = datetime.now() - self._t0
@@ -325,22 +333,47 @@ class Monitor:
 
 
 class QuietMonitor(Monitor):
-    """
-    Represents a Monitor with no output files.
+    """Represents a Monitor with no output files.
     It is a traceless Monitor, that can be used
     in cases where the live-view and toggles
     are useful but there's no need for an output directory.
 
+    :param name: An optional name for the Monitor. Can be used to distinguish between multiple
+        running Monitors.
+    :type name: str, optional
+    :param enable_toggles: Whether to open a toggles window for a convenient user control.
+    :type enable_toggles: bool, optional
     """
     def __init__(self, name=None, enable_toggles=True):
         super().__init__(name=name, enable_output_directory=False, enable_toggles=enable_toggles)
 
 
 class Tracker:
-    """
-    Track variables and save them to .csv files.
-    This class is a helper to the Monitor class.
+    """This class is a helper to the Monitor class.
+    It tracks variables and communicates with a Monitor object.
+    Creating a Tracker instance is conventionally meant to be
+    done with tracker() method of Monitor.
 
+    :param monitor: A reference to a Monitor object.
+        This class communicates with the Monitor object
+        and is also referenced from Monitor.
+    :type monitor: Monitor
+    :param _id: A unique ID for the Tracker, used to identify data
+        segments sent to the live view process when active.
+        The live view process receives tuples with new data values
+        along with IDs through a Queue. This way it knows where to store
+        the new information (As it has its own copied Trackers).
+    :type _id: float
+    :param dir_path: A path to the directory in which the tracker should save
+        its data. This only truly happens in save(), or if autosave is enabled.
+    :type dir_path: str
+    :param ind_var_name: The independent variable name this tracker is meant to track.
+    :type ind_var_name: str
+    :param dep_var_names: The dependent variable names that are meant to be tracked.
+    :type dep_var_names: str sequence
+    :param autosave: If True, this means that for each update() call, the Tracker will
+        also update the output file with the new data received.
+    :type autosave: bool
     """
 
     def __init__(self, monitor: Monitor, _id: float, dir_path: str, ind_var_name: str, *dep_var_names, autosave=False):
@@ -366,11 +399,17 @@ class Tracker:
             self.path = dir_path + '/' + _determine_tracker_filename(self, self.dir_path, '.csv')
 
     def update(self, ind_var, *dep_vars):
-        """
-        Update tracker's data.
+        """Update tracker's data. If autosave is enabled
+        this data is also appended to the output file associated with this tracker.
+        The data provided here should match the data labels used to create the Tracker:
+        - The number of values should be equal to the number of data labels.
+        - The order of the values should match the order of the data labels, i.e. ind_var, dep_var1, dep_var2 ...
 
-        :param ind_var: a current value of the independent variable.
-        :param dep_vars: current values of all dependent variables.
+
+        :param ind_var: A new value for the independent variable.
+        :type ind_var: float
+        :param dep_vars: New values for all dependent variables.
+        :type dep_vars: float
         """
         if len(dep_vars) != len(self.dep_var_names):
             raise Exception(f"Amount of data values ({1 + len(dep_vars)}) is "
@@ -390,22 +429,22 @@ class Tracker:
         # refresh monitor toggles
         _refresh_monitor_toggles(self.monitor)
 
-    def save(self, path=None):
-        """
-        Save data to an output file.
+    def save(self, _path=None):
+        """Save data to an output file.
         If autosave is enabled, then default output file
         is removed.
 
-        :param path: path for the output file, otherwise, determined by
-                     the data labels.
+        :param _path: Path to an output file. If not provided, a filename is a constructed
+            out of the data labels.
+        :type _path: str, optional
         """
 
         # determine output file path
-        if not path:
-            path = self.dir_path + '/' + _determine_tracker_filename(self, self.dir_path, '.csv')
+        if not _path:
+            _path = self.dir_path + '/' + _determine_tracker_filename(self, self.dir_path, '.csv')
 
         # write data to output file
-        with open(path, 'w') as out_file:
+        with open(_path, 'w') as out_file:
             content = ""
             for line in self.data:
                 content += ','.join([str(v) for v in line]) + '\n'
@@ -416,6 +455,16 @@ class Tracker:
             remove(p)
 
     def _append_to_out_file(self, line):
+        """This is a helper to the autosave operation.
+        Appends a line to the output file located at self.path.
+        self.path is only declared if autosave is True.
+        If the file is currently denying permission (potentially
+        because the user opened it in another program), it warns the user,
+        blocks and waits until the operation succeeds.
+
+        :param line: A line to append to the output file located at self.path.
+        :type line: str
+        """
         try:
             with open(self.path, 'a') as out_file:
                 out_file.write(line + '\n')
@@ -430,10 +479,40 @@ class Tracker:
 
 
 class Toggle:
-    """
-    A helper class for Monitor that represents a toggle button.
+    """This class represents a toggle button.
+    It is supposed to be a helper to Monitor, with which
+    you can add toggles through the add_toggle() method.
+    But it can also work independently.
+    This class has two "modes":
+    Each object is either the main_toggle, which
+    means that it's in charge of opening the listening process which opens
+    the window of toggles. Or - it isn't the main toggle, and then it is joined
+    to a main_toggle. The main toggle's process accepts new toggles and adds them to
+    its tkinter window.
+    A 'toggle' is simply a button that can be pressed by the user as many times as they like.
+    Whenever the user presses the button, a count variable is incremented.
+    When the method `toggled()` is then invoked, True is returned if the count value
+    is not zero, and the count gets decremented. Thus, the method `toggled()` returns
+    True for every toggle made by the user.
+    Additionally, Toggle has a toggle_count member that keeps track of all toggles
+    made so far and "discovered" (i.e. `toggled()` returned True for them).
+    When closing a toggle, its button gets disabled but still appears as long as other toggles
+    are enabled. When all toggles joined in the same window are closed, then the window and listening
+    process are closed.
 
+    :param main_toggle: A main toggle that's in charge of opening the listening process,
+        which then creates a window and accepts other toggles. If None, then this object
+        would be a main toggle itself.
+    :type main_toggle: Toggle, None
+    :param name: A name for the Toggle. The name appears on the button.
+    :type name: str, optional
+    :param desc: A description for the Toggle. The description appears above the button.
+    :type desc: str, optional
+    :param window_title: A title for the toggles window. This is relevant if this
+        toggle is the main_toggle, as it opens the process that opens the window.
+    :type window_title: str, optional
     """
+
     def __init__(self, main_toggle, name='Toggle', desc="Press to toggle", window_title="Toggle(s)"):
         self.toggle_count = 0
 
@@ -461,6 +540,13 @@ class Toggle:
             self._send(desc)
 
     def toggled(self):
+        """Returns True for every toggle made by the user.
+        Each time a user presses the toggle, a count is incremented.
+        This method returns True if the count is bigger than 0, and decrements the count.
+
+        :return: True if the button has been toggled. False if it hasn't.
+        :rtype: bool
+        """
         if self.counts[self.id] > 0:
             self.toggle_count += 1
             self.counts[self.id] -= 1
@@ -468,10 +554,21 @@ class Toggle:
         return False
 
     def close(self):
+        """Closes this toggle. If other toggles
+        in the window are still enabled, this toggle's button
+        will still appear but will become disabled. When all
+        toggles in the window are closed, then the window is closed as well.
+
+        """
         self._send(2)
         self._send(self.id)
 
     def _send(self, data):
+        """Used to send data to the listening process through
+        the instructions Queue.
+
+        :param data: Any data to be sent to the process.
+        """
         self.__in_q.put(data)
 
 
