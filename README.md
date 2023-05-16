@@ -31,6 +31,7 @@ pip install simmon
 ```
 
 ## Usage
+You can find the documentation of this project [here](https://simmon.readthedocs.io/en/latest/?badge=latest).
 Here's a quick example of the `Monitor` class used to track a moving object simulation:
 
 ```python
@@ -152,3 +153,4 @@ print(mon.dt, mon.its)  # config variables are still there
 
 ## Contributing
 Please report any bug you might come across. Contributions and enhancements are very welcome!
+Take a look at the [documentation](https://simmon.readthedocs.io/en/latest/?badge=latest) of this project.
