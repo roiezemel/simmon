@@ -265,7 +265,7 @@ class Monitor:
             for title in data_content[1]:  # dir names
                 group_path = f'{data_path}/{title}'
                 for tracker_filename in next(walk(group_path), [()] * 3)[2]:
-                    labels = tracker_filename.replace('+', '').split('-')
+                    labels = tracker_filename.replace('+', '').replace('.csv').split('-')
                     tracker = self.tracker(labels[0], *labels[1:], title=title)
                     _load_to_tracker(tracker, f'{group_path}/{tracker_filename}')
 
