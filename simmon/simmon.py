@@ -270,7 +270,7 @@ class Monitor:
                     _load_to_tracker(tracker, f'{group_path}/{tracker_filename}')
 
             for no_title_filename in data_content[2]:  # file names
-                labels = no_title_filename.replace('+', '').split('-')
+                labels = no_title_filename.replace('+', '').replace('.csv', '').split('-')
                 tracker = self.tracker(labels[0], *labels[1:])
                 _load_to_tracker(tracker, f'{data_path}/{no_title_filename}')
 
