@@ -576,13 +576,28 @@ class Toggle:
 # UTILITY FUNCTIONS
 # -----------------
 def _live_view_process(monitor: Monitor, data_q: Queue, update_rate):
-    """
-    This is the live view process.
+    """This is the live view process.
     It creates and updates the live view figure.
+    This process receives a copy of the Monitor object, as well
+    as a Queue for communication and an update rate.
+    When started, the process still doesn't show anything. When a Tracker
+    in the MAIN process gets updated with new values (aka via tracker.update()),
+    it then sends the new values to this process through the Queue structure, along
+    with the Tracker's ID. Only then does the live view starts showing its updating plot.
+    This is done so that only currently-updating trackers are plotted in the live view.
+    If another tracker will later get updated as well, it will also be plotted and added to the
+    live view figure.
+    The live view only checks the Queue and updates the plots every
+    once in a while, according to the update_rate, and in the rest of the time - it sleeps.
+    This continues until the main process signals this process to stop. It does so
+    by putting None in the Queue.
 
-    :param monitor: a monitor clone object (pickled and un-pickled).
-    :param data_q: a data queue to send data to the process.
-    :param update_rate: how many updates per second.
+    :param monitor: A monitor clone object (pickled and un-pickled).
+    :type monitor: Monitor
+    :param data_q: A data queue for sending new values to the process.
+    :type data_q: multiprocessing.Queue
+    :param update_rate: How many updates to perform per second.
+    :type update_rate: float
     """
     plt.ion()
     backend = matplotlib.get_backend()
@@ -645,6 +660,12 @@ def _live_view_process(monitor: Monitor, data_q: Queue, update_rate):
 
 
 def _custom_pause_live_view(interval):
+    """This is a custom pause used for a proper update of
+    the live view figure. This a solution taken from Stack Overflow.
+
+    :param interval: A pause interval.
+    :type interval: float
+    """
     backend = plt.rcParams['backend']
     if backend in matplotlib.rcsetup.interactive_bk:
         fig_manager = matplotlib._pylab_helpers.Gcf.get_active()
@@ -657,14 +678,19 @@ def _custom_pause_live_view(interval):
 
 
 def _redraw_live_view(monitor, prev_figure, trackers):
-    """
-    In case new trackers are added to the live view,
-    a new figure is created with this function.
+    """Helper to the live view process.
+    Whenever new trackers get updated, their plots
+    should be added to the live view figure (see _live_view_process). In this case, a new figure
+    needs to be created.
 
-    :param monitor: the monitor.
-    :param prev_figure: the previous figure.
-    :param trackers: the updated list of trackers.
-    :return: new figure and a list of axes objects.
+    :param monitor: The monitor clone containing the tracker objects.
+    :type monitor: Monitor
+    :param prev_figure: The previous figure.
+    :type prev_figure: matplotlib.Figure
+    :param trackers: The updated list of trackers to be plotted.
+    :type trackers: iterable
+    :return: A new figure and a list of axes objects.
+    :rtype: tuple
     """
     if prev_figure:
         plt.close()
@@ -676,12 +702,18 @@ def _redraw_live_view(monitor, prev_figure, trackers):
 
 
 def _update_live_view_axes(new_data, tracker, axes):
-    """
-    Update a live view axes according to a new data update.
+    """Helper to the live view process.
+    Update a single live-view axes with a single tracker's plot.
+    This function takes the tracker being plotted, the axes on which it's done,
+    and the new values added to the data - in order to update the plot with the new values.
 
-    :param new_data: a tuple of new data values.
-    :param tracker: a tracker that stores all the data for the axes lines.
-    :param axes: the axes of the plot.
+    :param new_data: A tuple of new data values.
+    :type new_data: tuple
+    :param tracker: The tracker whose plot needs to get updated.
+        This tracker MUST include the updated values already.
+    :type tracker: Tracker
+    :param axes: The axes of the plot.
+    :type axes: matplotlib.Axes
     """
 
     # update x and y values
@@ -715,10 +747,18 @@ def _update_live_view_axes(new_data, tracker, axes):
 
 
 def _refresh_monitor_toggles(monitor):
-    """
-    Check if monitor's main toggles have been toggled.
+    """Helper to handle the default toggles of Monitor.
+    When a Monitor is created, some toggles are added to it
+    by default. These toggles then listen for user presses and
+    remember them.
+    But someone has to take care of what to do when they're
+    toggled. This function is called in every tracker update
+    of the monitor (see Tracker.update()). It checks if any of the default monitor toggles
+    has been toggled, and if so, it operates accordingly.
+    For example, it opens the live-view if the live-view toggle has been pressed.
 
-    :param monitor: a monitor.
+    :param monitor: The monitor whose default toggles would be checked.
+    :type monitor: Monitor
     """
     # if live view toggle toggled
     if getattr(monitor, 'live_view_toggle', False) and monitor.live_view_toggle.toggled():
@@ -745,13 +785,21 @@ def _refresh_monitor_toggles(monitor):
 
 
 def _monitor_plot(monitor, *args, return_figure_and_axs=False):
-    """
-    Plot all trackers or groups of trackers in a single figure.
+    """Helper to Monitor plot.
+    This functions receives a Monitor object, and arguments specifying
+    what plots to make, and creates a matplotlib figure with all of these plots.
+    It then either shows this figure in a user-interface window, or returns the figure
+    and axs to the caller without opening the UI.
 
-    :param args: either titles, Tracker objects, or iterables of Tracker objects.
-    :param return_figure_and_axs: if True, a matplotlib figure is returned
-                                  instead of being displayed, along with an array of axes objects.
-    :return: (optionally) a matplotlib figure, and an array of axs.
+    For an explanation of what arguments should be passed with *args, see Monitor.plot().
+
+    :param args: Either titles, Tracker objects, or iterables of Tracker objects.
+    :type args: str, Tracker, iterable
+    :param return_figure_and_axs: If True, a matplotlib figure is returned
+        instead of being displayed, along with an array of axes objects.
+    :type return_figure_and_axs: bool, optional
+    :return: (optionally) A matplotlib figure, and an array of axs.
+    :rtype: tuple
     """
     if not len(args):
         if return_figure_and_axs:
@@ -817,11 +865,13 @@ def _monitor_plot(monitor, *args, return_figure_and_axs=False):
 
 
 def _plot_trackers(axes, trackers):
-    """
-    Plot a group of trackers' data.
+    """Helper to _monitor_plot.
+    This function shows the graphs of a group of trackers in a single plot.
 
-    :param axes: a matplotlib axes.
-    :param trackers: a list of trackers.
+    :param axes: An axes for the plot.
+    :type axes: matplotlib.Axes
+    :param trackers: A list of trackers.
+    :type trackers: iterable
     """
     # plot all graphs
     for tracker in trackers:
@@ -837,10 +887,10 @@ def _plot_trackers(axes, trackers):
             axes.plot(xs, ys, label=tracker.dep_var_names[i])
 
     # set axis labels
-    if len(trackers) == 1 and len(trackers[0].dep_var_names) == 1:
+    if len(trackers) == 1 and len((tr := next(iter(trackers))).dep_var_names) == 1:
         # then there is only a single line
-        axes.set_xlabel(trackers[0].ind_var_name.capitalize())
-        axes.set_ylabel(trackers[0].dep_var_names[0].capitalize())
+        axes.set_xlabel(tr.ind_var_name.capitalize())
+        axes.set_ylabel(tr.dep_var_names[0].capitalize())
 
     else:
         # then there are multiple lines
@@ -850,14 +900,33 @@ def _plot_trackers(axes, trackers):
 
 
 def _toggle_window(in_q, _counts, name, desc, window_title):
-    """
-    This process creates toggle buttons and listens to toggles.
+    """Helper to Toggle class.
+    This is the listening process of the Toggles window.
+    This process initially creates a tkinter window, and adds a single
+    toggle button according to its arguments.
+    It then listens to user toggles, and also receives signals from the main
+    process through an instructions-queue.
+    These instructions are of two types:
+    1. Add a new toggle. This is followed with information about a new
+    toggle button to be added to the window. For an explanation
+    of how and why toggles are added in this way, see Toggle.
+    2. Close a toggle button. This comes with the ID of the Toggle
+    button to close. When a toggle is closed, its
+    button gets disabled, but it is not removed from the window. When all toggles
+    are closed, then the window is closed and this process terminates.
 
-    :param in_q: instruction queue.
-    :param _counts: counts array-like.
-    :param name: (main) toggle name.
-    :param desc: (main) toggle description.
-    :param window_title: a window title.
+    :param in_q: An instructions-queue used to receive instructions from
+        the main process.
+    :type in_q: multiprocessing.Queue
+    :param _counts: An array-like of counts used to keep track of toggles
+        made for each Toggle.
+    :type _counts: numpy.ndarray, list
+    :param name: The name of the initial main-toggle.
+    :type name: str
+    :param desc: Description for the main-toggle.
+    :type desc: str
+    :param window_title: A window title.
+    :type window_title: str
     """
     window = Tk()
     window.configure(bg='white')
@@ -931,25 +1000,63 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
 
 
 def _determine_tracker_filename(tracker, dir_path, ending):
+    """Used to determine the filename associated with a Tracker object.
+    This filename is simply a combination of the Tracker's data labels.
+    If the filename already exist in the output directory, '+'s are added
+    to the name to make it unique.
+    This function is used for both output data files, and output plot image files.
+
+    :param tracker: A Tracker for which a name should be determined.
+    :type tracker: Tracker
+    :param dir_path: The path to the output directory in which
+        the file will be saved.
+    :type dir_path: str
+    :param ending: A file ending, such as '.csv' or '.png'.
+    :type ending: str
+    :return: A filename for the Tracker's output.
+    :rtype: str
+    """
     name = '-'.join([tracker.ind_var_name] + tracker.dep_var_names) + ending
     while name in next(walk(dir_path), (None, None, []))[2]:
         name = "+" + name
     return name.replace(':', '-')
 
 
-def _load_to_tracker(tracker, path):
-    """
-    Load a tracker object from a path.
+def _load_to_tracker(tracker, _path):
+    """Loads data from an output .csv file into
+    a Tracker object.
 
-    :param tracker: a tracker object to load the data into.
-    :param path: path to data file.
+    :param tracker: A tracker object to load the data into.
+    :type tracker: Tracker
+    :param _path: Path to data file.
+    :type _path: str
     """
-    with open(path, 'r') as file:
+    with open(_path, 'r') as file:
         for line in file.readlines():
             tracker.data.append(tuple([float(d) for d in line.replace('\n', '').split(',')]))
 
 
 def _generate_directory(dir_name, super_directory):
+    """Generates an output directory for a Monitor.
+    This function receives dir_name and super_directory, either can
+    potentially be None.
+    If super_directory is None, it defaults to a path such as sim_records/today's-date.
+    If dir_name is None, then the directory is given a generic name such as "S#", where #
+    is one more than the highest number that appears in super_directory.
+
+    The output directory is a combination of the two:
+    super_directory/dir_name.
+
+    If any of the directories along the path don't already exist, they are created.
+
+    :param dir_name: A directory name.
+    :type dir_name: str, None
+    :param super_directory: A super (outer) directory.
+    :type super_directory: str, None
+    :return: The constructed path of the generated directory.
+    :rtype: str
+    """
+
     if not super_directory:
         super_directory = f'sim_records/{str(date.today())}'
 
@@ -984,4 +1091,10 @@ def _generate_directory(dir_name, super_directory):
 
 
 def _create_dir_path(dir_path):
+    """Provided with a path to a directory, this
+    function creates any directory along the path that doesn't already exist.
+
+    :param dir_path: A path to a directory.
+    :type dir_path: str
+    """
     Path(dir_path).mkdir(parents=True, exist_ok=True)
