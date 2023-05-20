@@ -952,8 +952,10 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
 
     # these next few lines set the window icon
     icon_url = "https://raw.githubusercontent.com/roiezemel/simmon/main/assets/simmon_logo.png"
-    image_byt = urlopen(icon_url).read()
-    icon = PhotoImage(data=base64.decodebytes(image_byt))
+    u = urlopen(icon_url)
+    raw_data = u.read()
+    u.close()
+    icon = PhotoImage(data=raw_data)
     window.iconphoto(False, icon)
 
     window.rowconfigure(0, weight=1)
