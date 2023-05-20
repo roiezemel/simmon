@@ -9,7 +9,7 @@ from multiprocessing import Process, Queue, Manager
 from tkinter import Tk, Label, PhotoImage, Button, Frame
 from urllib.request import urlopen
 
-# this next section import pyautogui module only if it exists
+# this next section imports pyautogui module only if it exists
 # in which case preventing-computer-sleep-mode is enabled.
 import importlib.util
 spam_spec = importlib.util.find_spec("pyautogui")  # if pyautogui module exists, enable keep awake functionality
