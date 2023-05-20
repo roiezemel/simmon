@@ -6,7 +6,10 @@ import time
 import matplotlib
 import matplotlib.pyplot as plt
 from multiprocessing import Process, Queue, Manager
-from tkinter import Tk, Label, ttk
+from tkinter import Tk, Label, ttk, PhotoImage
+import pyautogui
+import base64
+from urllib.request import urlopen
 
 
 class Monitor:
@@ -661,7 +664,7 @@ def _live_view_process(monitor: Monitor, data_q: Queue, update_rate):
 
 def _custom_pause_live_view(interval):
     """This is a custom pause used for a proper update of
-    the live view figure. This a solution taken from Stack Overflow.
+    the live view figure. This is a solution taken from Stack Overflow.
 
     :param interval: A pause interval.
     :type interval: float
@@ -915,6 +918,10 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
     button gets disabled, but it is not removed from the window. When all toggles
     are closed, then the window is closed and this process terminates.
 
+    Additionally, this process takes care of preventing the computer
+    from going into sleep mode. This is done by pressing the harmless 'shift'
+    key every once in a while.
+
     :param in_q: An instructions-queue used to receive instructions from
         the main process.
     :type in_q: multiprocessing.Queue
@@ -928,12 +935,33 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
     :param window_title: A window title.
     :type window_title: str
     """
+
+    # Setting pyautogui FAILSAFE to False,
+    # because FAILSAFE is a pyautogui feature
+    # that raises an Exception whenever the mouse
+    # moves to a corner of the screen.
+    # Pyautogui is used to here to prevent computer from
+    # going into sleep mode. Without this line
+    # programs could unexpectedly terminate when the user moves the
+    # mouse to one of the corners.
+    pyautogui.FAILSAFE = False
+
     window = Tk()
     window.configure(bg='white')
     window.title(window_title)
 
+    # these next few lines set the window icon
+    icon_url = "https://raw.githubusercontent.com/roiezemel/simmon/main/assets/simmon_logo.ico"
+    image_byt = urlopen(icon_url).read()
+    icon = PhotoImage(data=base64.encodestring(image_byt))
+    window.iconphoto(False, icon)
+
     window.rowconfigure(0, weight=1)
     window.rowconfigure(1, weight=1)
+
+    Label(window, text='Keeping PC awake', bg='white',
+          fg='grey', font=('Ariel', 9, 'bold'))\
+        .grid(row=2, column=0, sticky='W', pady=1, padx=1)
 
     columns = 0
     buttons = []
@@ -941,6 +969,12 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
     width = 0
 
     def add_button(_name, _desc):
+        """
+        This local function adds a new button to the toggles window.
+        It is called whenever the main process instructs to add a new toggle.
+        See local refresh() below.
+
+        """
         nonlocal columns, width
 
         index = columns
@@ -969,7 +1003,19 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
 
     add_button(name, desc)
 
-    def check_signal():
+    def refresh():
+        """
+        This local function refreshes
+        the toggle windows:
+        - It listens to signals from main process
+        - It keeps the computer awake by pressing the shift key
+        """
+
+        # press shift key
+        # this is here to prevent the computer from going
+        # into sleep mode
+        pyautogui.press('shift')  # press shift key
+
         keep_listening = True
 
         while not in_q.empty():
@@ -992,9 +1038,9 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
                 buttons[_id].state(["disabled"])
 
         if keep_listening:
-            window.after(3000, check_signal)
+            window.after(3000, refresh)
 
-    check_signal()
+    refresh()
 
     window.mainloop()
 

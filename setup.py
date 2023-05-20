@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="simmon",
-    version="0.0.3",
+    version="0.0.4",
     author="Roie Zemel",
     description="A simple simulation monitor",
     long_description=long_description,
@@ -15,7 +15,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     py_modules=["simmon"],
     package_dir={'': 'simmon'},
     install_requires=['matplotlib'],
