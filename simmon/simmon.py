@@ -6,9 +6,8 @@ import time
 import matplotlib
 import matplotlib.pyplot as plt
 from multiprocessing import Process, Queue, Manager
-from tkinter import Tk, Label, ttk, PhotoImage
+from tkinter import Tk, Label, PhotoImage, Button, Frame
 import pyautogui
-import base64
 from urllib.request import urlopen
 
 
@@ -314,7 +313,8 @@ class Monitor:
         - A summary of the data files in the output directory.
 
         """
-        delta = datetime.now() - self._t0
+        now = datetime.now()
+        delta = now - self._t0
         hours, remainder = divmod(delta.total_seconds(), 3600)
         minutes, seconds = divmod(remainder, 60)
         duration = '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
@@ -322,7 +322,8 @@ class Monitor:
         content = f"-------------\n" \
                   f"   Summary   \n" \
                   f"-------------\n" \
-                  f"Monitor was up for {duration}.\n\n" \
+                  f"Monitor was running for {duration}," \
+                  f" and finished at {now.strftime('%d/%m/%Y %H:%M:%S')}.\n\n" \
                   f"Tracked data:\n"
         for title, trackers in self.titled_trackers.items():
             if title != 'no_title':
@@ -946,8 +947,17 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
     # mouse to one of the corners.
     pyautogui.FAILSAFE = False
 
+    # these are the background and foreground colors for the window
+    bg = 'white'
+    fg = 'black'
+    button_bg = '#353535'
+    active_bg = bg
+    button_fg = 'white'
+    border_color = 'black'
+    keep_awake_color = 'grey'
+
     window = Tk()
-    window.configure(bg='white')
+    window.configure(bg=bg)
     window.title(window_title)
 
     # these next few lines set the window icon
@@ -961,8 +971,8 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
     window.rowconfigure(0, weight=1)
     window.rowconfigure(1, weight=1)
 
-    Label(window, text='Keeping PC awake', bg='white',
-          fg='grey', font=('Ariel', 9, 'bold'))\
+    Label(window, text='Keeping PC awake', bg=bg,
+          fg=keep_awake_color, font=('Ariel', 9, 'bold'))\
         .grid(row=2, column=0, sticky='W', pady=1, padx=1)
 
     columns = 0
@@ -986,21 +996,20 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
 
         window.columnconfigure(columns, weight=1)
 
-        label = Label(window, text=_desc, bg='white', font=('Ariel', 20, 'bold'))
+        label = Label(window, text=_desc, bg=bg, fg=fg, font=('Calibri', 17, 'bold'))
 
-        s = ttk.Style()
-        s.configure('my.TButton', font=('Ariel', 20, 'bold'))
-        btn = ttk.Button(window,
-                         text=_name,
-                         command=on_toggle, style='my.TButton')
+        button_border = Frame(window, highlightbackground=border_color, highlightthickness=3, bd=0)
+        btn = Button(button_border, bg=button_bg, fg=button_fg, activebackground=active_bg, activeforeground=fg,
+                     relief='flat', text=_name, command=on_toggle, font=('Calibri', 25, 'bold'), borderwidth=0)
         buttons.append(btn)
         closed.append(False)
 
         label.grid(row=0, column=columns)
-        btn.grid(row=1, column=columns, sticky="NSEW", padx=20, pady=(0, 20))
+        button_border.grid(row=1, column=columns, sticky="NSEW", padx=20, pady=(0, 20))
+        btn.pack(expand=True, fill='both')
         columns += 1
 
-        width += (max(len(_desc), len(_name)) + 3) * 15
+        width += (max(len(_desc), len(_name)) + 5) * 15
         window.geometry(f"{width}x300")
 
     add_button(name, desc)
@@ -1026,7 +1035,6 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
                 _name = in_q.get()
                 _desc = in_q.get()
                 add_button(_name, _desc)
-                window.geometry(f'{len(buttons) * 300}x300')
 
             if signal == 2:  # close a toggle
                 _id = in_q.get()
@@ -1037,7 +1045,7 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
                     keep_listening = False
                     break
 
-                buttons[_id].state(["disabled"])
+                buttons[_id]['state'] = 'disabled'
 
         if keep_listening:
             window.after(3000, refresh)
