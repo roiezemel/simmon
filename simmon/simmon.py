@@ -7,8 +7,15 @@ import matplotlib
 import matplotlib.pyplot as plt
 from multiprocessing import Process, Queue, Manager
 from tkinter import Tk, Label, PhotoImage, Button, Frame
-import pyautogui
 from urllib.request import urlopen
+
+# this next section import pyautogui module only if it exists
+# in which case preventing-computer-sleep-mode is enabled.
+import importlib.util
+spam_spec = importlib.util.find_spec("pyautogui")  # if pyautogui module exists, enable keep awake functionality
+keep_awake = spam_spec is not None
+if keep_awake:
+    import pyautogui
 
 
 class Monitor:
@@ -945,7 +952,8 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
     # going into sleep mode. Without this line
     # programs could unexpectedly terminate when the user moves the
     # mouse to one of the corners.
-    pyautogui.FAILSAFE = False
+    if keep_awake:
+        pyautogui.FAILSAFE = False
 
     # these are the background and foreground colors for the window
     bg = 'white'
@@ -971,7 +979,7 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
     window.rowconfigure(0, weight=1)
     window.rowconfigure(1, weight=1)
 
-    Label(window, text='Keeping PC awake', bg=bg,
+    Label(window, text=f'Keeping PC awake - {"enabled" if keep_awake else "disabled"}', bg=bg,
           fg=keep_awake_color, font=('Ariel', 9, 'bold'))\
         .grid(row=2, column=0, sticky='W', pady=1, padx=1)
 
@@ -1025,7 +1033,8 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
         # press shift key
         # this is here to prevent the computer from going
         # into sleep mode
-        pyautogui.press('shift')  # press shift key
+        if keep_awake:
+            pyautogui.press('shift')  # press shift key
 
         keep_listening = True
 

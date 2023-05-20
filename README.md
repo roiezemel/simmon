@@ -23,7 +23,7 @@ of a long-running simulation.
   * A config file with configuration constants
   * A summary text file
 * Loading an output directory to continue working with a simulation that's been terminated.
-* Preventing your computer from going into sleep mode.
+* Preventing your computer from going into sleep mode (requires `pyautogui` module).
 
 ## Installation
 Install with `pip`:
