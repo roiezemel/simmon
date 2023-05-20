@@ -8,10 +8,12 @@ import matplotlib.pyplot as plt
 from multiprocessing import Process, Queue, Manager
 from tkinter import Tk, Label, PhotoImage, Button, Frame
 from urllib.request import urlopen
+import numpy as np
 
 # this next section imports pyautogui module only if it exists
 # in which case preventing-computer-sleep-mode is enabled.
 import importlib.util
+
 spam_spec = importlib.util.find_spec("pyautogui")  # if pyautogui module exists, enable keep awake functionality
 keep_awake = spam_spec is not None
 if keep_awake:
@@ -727,34 +729,55 @@ def _update_live_view_axes(new_data, tracker, axes):
     :type axes: matplotlib.Axes
     """
 
-    # update x and y values
-    xs = [d[0] for d in tracker.data]
+    # update x and y values, and also keep track of x and y limits
+    min_x = np.inf  # these are used for the plot's x limit
+    max_x = -np.inf
+    xs = np.empty(len(tracker.data))
+    for i in range(len(tracker.data)):
+        x = tracker.data[i][0]
+        xs[i] = x
+
+        if x < min_x:
+            min_x = x
+        elif x > max_x:
+            max_x = x
+
+    if max_x == -np.inf:  # if hasn't changed
+        max_x = 1
+
+    if min_x == np.inf:  # if hasn't changed
+        min_x = max_x - 1
+
+    min_y = np.inf  # for the plot's y limit
+    max_y = -np.inf
     i = 1
     for line in axes.get_lines():
-        ys = [d[i] for d in tracker.data]
+
+        ys = np.empty(len(tracker.data))
+        for j in range(len(tracker.data)):
+            y = tracker.data[j][i]
+            ys[j] = y
+
+            if y < min_y:
+                min_y = y
+            elif y > max_y:
+                max_y = y
+
         line.set_xdata(xs)
         line.set_ydata(ys)
         i += 1
 
-    # get x and y limits
-    x_min, x_max = axes.get_xlim()
-    y_min, y_max = axes.get_ylim()
+    if max_y == -np.inf:  # if hasn't changed
+        max_y = 1
 
-    # check if new data changes x and y limits and update them
-    if new_data[0] < x_min:
-        x_min = new_data[0]
-    elif new_data[0] > x_max:
-        x_max = new_data[0]
-
-    for v in new_data[1:]:
-        if v < y_min:
-            y_min = v
-        elif v > y_max:
-            y_max = v
+    if min_y == np.inf:  # if hasn't changed
+        min_y = max_y - 1
 
     # update x and y limits
-    axes.set_xlim(x_min, x_max)
-    axes.set_ylim(y_min, y_max)
+    pad_x = (max_x - min_x) / 35
+    pad_y = (max_y - min_y) / 35
+    axes.set_xlim(min_x - pad_x, max_x + pad_x)
+    axes.set_ylim(min_y - pad_y, max_y + pad_y)
 
 
 def _refresh_monitor_toggles(monitor):
