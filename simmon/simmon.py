@@ -1,3 +1,4 @@
+import urllib.error
 import warnings
 from datetime import date, datetime
 from os import walk, remove, path
@@ -9,6 +10,7 @@ from multiprocessing import Process, Queue, Manager
 from tkinter import Tk, Label, PhotoImage, Button, Frame
 from urllib.request import urlopen
 import numpy as np
+import socket
 
 # this next section imports pyautogui module only if it exists
 # in which case preventing-computer-sleep-mode is enabled.
@@ -993,11 +995,14 @@ def _toggle_window(in_q, _counts, name, desc, window_title):
 
     # these next few lines set the window icon
     icon_url = "https://raw.githubusercontent.com/roiezemel/simmon/main/assets/simmon_logo.png"
-    u = urlopen(icon_url)
-    raw_data = u.read()
-    u.close()
-    icon = PhotoImage(data=raw_data)
-    window.iconphoto(False, icon)
+    try:
+        u = urlopen(icon_url, timeout=1)  # the window icon is not worth more than a second
+        raw_data = u.read()
+        u.close()
+        icon = PhotoImage(data=raw_data)
+        window.iconphoto(False, icon)
+    except (urllib.error.URLError, socket.timeout):
+        pass
 
     window.rowconfigure(0, weight=1)
     window.rowconfigure(1, weight=1)
